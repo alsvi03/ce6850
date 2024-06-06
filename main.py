@@ -14,11 +14,31 @@ confim: bytearray= [0]*6
 password: bytearray=[0]*14
 read_reqes: bytearray = [0]*15
 
-def calculate_crc(buff, count):
+def calculate_crc(data, count):
     crc = 0
     for i in range(count):
-        crc += buff[i]
-    return crc & 0x7F
+        crc += data[i]
+    crc &= 0x7F
+    return crc - 1
+
+
+
+
+def process_string(input_string):  # приведение ответа к формату буфера
+    buffer = []
+    for i in range(0, len(input_string), 2):
+        if i+1 < len(input_string):
+            two_chars = input_string[i:i+2]
+            num = two_chars
+            buffer.append(num)
+
+    return buffer
+
+def hex_to_int(buff):
+    int_buf = [0]*len(buff)
+    for i in range(len(buff)):
+        int_buf[i]=int(buff[i],16)
+    return int_buf
 
 
 def int_to_hex(buff, size):
@@ -115,7 +135,7 @@ def create_Read_msg(com,I1,I2,e):
     read_reqes[12] = 0x29 # )
     read_reqes[13] = 0x03
     #read_reqes[14] = 0x0d # пхд контрольная сумма
-    read_reqes[14] = calculate_crc(read_reqes, 13)  # пхд контрольная сумма
+    read_reqes[14] = calculate_crc(read_reqes, 14)  # пхд контрольная сумма
 
     return read_reqes
 
@@ -215,16 +235,25 @@ for i in range (4):
 
 
 
-# for i in range(7):
-#     print(r.lpop('output'))
+for i in range(7):
+    print(r.lpop('output'))
 # print(int_to_hex(create_Packege_reqest(address),8))
 # print(int_to_hex(create_confirm_msg(),6))
 # print(int_to_hex(create_password_msg(),14))
 # print(int_to_hex(create_Read_msg(com,I1,I2,0),15))
 
-buff = ['45', '44', '30', '50', '45', '28', '30', '30', '30', '30', '30', '30', '30', '30', '30', '33', '34', '36', '31', '2E', '32', '31', '33', '33', '34', '29', '0D', '0A',
-        '45', '44', '30', '50', '45', '28', '30', '30', '30', '30', '30', '30', '30', '30', '30', '31', '30', '38', '30', '2E', '36', '34', '38', '38', '36', '29', '0D']
-print(check_data(buff))
+# buff = hex_to_int(process_string("4928303030303030303030303032312E3539363031290D0A454430504928303030303030303030303031332E3734373230290D"))
+# print(buff)
+# print(check_data(buff))
+
+
+buff2 = process_string("0152310245443051492831362903")
+#print(buff2)
+print(hex(calculate_crc(hex_to_int(buff2),len(buff2))))
+
+
+
+
 
 
 
