@@ -121,12 +121,105 @@ def create_Read_msg(com,I1,I2,e):
         i = day(read_reqes,e,I1,I2)
     elif com == "month":
         i = month(read_reqes,e,I1,I2)
+    elif com == "instant":
+        i = instant(read_reqes,e)
+    else:
+        print("unknown command: "+ com)
+        i=3
 
     read_reqes[i+1] = 0x03
     #read_reqes[14] = 0x0d # пхд контрольная сумма
     read_reqes[i+2] = calculate_crc(read_reqes, i+2)  # пхд контрольная сумма
 
     return read_reqes
+
+
+def instant (buff,e):
+    if e == 0:  #.R1.POWEP().d
+        buff[4] = 0x50
+        buff[5] = 0x4f
+        buff[6] = 0x57
+        buff[7] = 0x45
+        buff[8] = 0x50
+        buff[9] = 0x28
+        buff[10] = 0x29
+    elif e == 1: #.R1.POWEQ().e
+        buff[4] = 0x50
+        buff[5] = 0x4f
+        buff[6] = 0x57
+        buff[7] = 0x45
+        buff[8] = 0x51
+        buff[9] = 0x28
+        buff[10] = 0x29
+    elif e == 2: #.R1.POWES().g
+        buff[4] = 0x50
+        buff[5] = 0x4f
+        buff[6] = 0x57
+        buff[7] = 0x45
+        buff[8] = 0x53
+        buff[9] = 0x28
+        buff[10] = 0x29
+    elif e == 3: #.R1.VOLTA()._
+        buff[4] = 0x56
+        buff[5] = 0x4f
+        buff[6] = 0x4c
+        buff[7] = 0x54
+        buff[8] = 0x41
+        buff[9] = 0x28
+        buff[10] = 0x29
+    elif e == 4: #.R1.CURRE().Z
+        buff[4] = 0x43
+        buff[5] = 0x55
+        buff[6] = 0x52
+        buff[7] = 0x52
+        buff[8] = 0x45
+        buff[9] = 0x28
+        buff[10] = 0x29
+    elif e == 5: #.R1.COS_f()..
+        buff[4] = 0x43
+        buff[5] = 0x4f
+        buff[6] = 0x53
+        buff[7] = 0x5f
+        buff[8] = 0x66
+        buff[9] = 0x28
+        buff[10] = 0x29
+    elif e == 6: #.R1.SIN_f()..
+        buff[4] = 0x53
+        buff[5] = 0x49
+        buff[6] = 0x4e
+        buff[7] = 0x5f
+        buff[8] = 0x66
+        buff[9] = 0x28
+        buff[10] = 0x29
+    elif e == 7: #.R1.CORIU().[
+        buff[4] = 0x43
+        buff[5] = 0x4f
+        buff[6] = 0x52
+        buff[7] = 0x49
+        buff[8] = 0x55
+        buff[9] = 0x28
+        buff[10] = 0x29
+    elif e == 8: #.R1.FREQU().\
+        buff[4] = 0x46
+        buff[5] = 0x52
+        buff[6] = 0x45
+        buff[7] = 0x51
+        buff[8] = 0x55
+        buff[9] = 0x28
+        buff[10] = 0x29
+
+
+    #.R1.POWEP().d  01 52 31 02   50 4F 57 45 50 28 29   03 64
+    #.R1.POWEQ().e  01 52 31 02   50 4F 57 45 51 28 29   03 65
+    #.R1.POWES().g  01 52 31 02   50 4F 57 45 53 28 29   03 67
+    #.R1.VOLTA()._  01 52 31 02   56 4F 4C 54 41 28 29   03 5F
+    #.R1.CURRE().Z  01 52 31 02   43 55 52 52 45 28 29   03 5A
+    #.R1.COS_f()..  01 52 31 02   43 4F 53 5F 66 28 29   03 03
+    #.R1.SIN_f()..  01 52 31 02   53 49 4E 5F 66 28 29   03 08
+    #.R1.CORIU().[  01 52 31 02   43 4F 52 49 55 28 29   03 5B
+    #.R1.FREQU().\  01 52 31 02   46 52 45 51 55 28 29   03 5C
+    return 10
+
 
 def min30 (buff,e,date):
     # 01 52 31 02 47 52 41 50 45   28  30 36 2E 30 36 2E 32 34 2E 31 2E 32 34  29   03 49
@@ -219,13 +312,14 @@ def month(buff,e,I1,I2):
 
 def check_data(buffer):
     values = []
-    e = 0
+    e = 222
     in_range = False
     current_string = ''
     for index, value in enumerate(buffer):
         if value == '28':
             prev_value1 = buffer[index - 2]  # Сохраняем первое предыдущее значение
             prev_value2 = buffer[index - 1]  # Сохраняем второе предыдущее значение
+            prev_value3 = buffer[index - 3]  # Сохраняем второе предыдущее значение
 
             if prev_value1 == '50' and prev_value2 == '45':
                 e = 0
@@ -235,6 +329,25 @@ def check_data(buffer):
                 e = 2
             elif prev_value1 == '51' and prev_value2 == '49':
                 e = 3
+            elif prev_value1 == '45' and prev_value2 == '50':
+                e = 4
+            elif prev_value1 == '45' and prev_value2 == '51':
+                e = 5
+            elif prev_value1 == '45' and prev_value2 == '53':
+                e = 6
+            elif prev_value1 == '54' and prev_value2 == '41':
+                e = 7
+            elif prev_value1 == '52' and prev_value2 == '45':
+                e = 8
+            elif prev_value1 == '5F' and prev_value2 == '66' and prev_value3 == '53':
+                e = 9
+            elif prev_value1 == '5F' and prev_value2 == '66':
+                e = 10
+            elif prev_value1 == '49' and prev_value2 == '55':
+                e = 11
+            elif prev_value1 == '51' and prev_value2 == '55':
+                e = 12
+
             in_range = True
             current_string = ''
         elif value == '29':
@@ -249,6 +362,10 @@ def check_data(buffer):
 
                 current_string += chr(int(value, 16))  # Преобразуем ASCII код в символ и добавляем к текущей строке
 
+
+
+
+
     return values,e
 
 
@@ -257,7 +374,7 @@ command = f'channel.commands'
 #-- создаем пример запроса
 json_create_cmd = {
     "channel": 'ktp6',  # название канала
-    "cmd": 'min30',  # название типа опроса day - показания на начало суток
+    "cmd": 'instant',  # название типа опроса day - показания на начало суток
     "run": 'ce6850',  # название вызываемого протокола
     "vm_id": 4,  # id прибора учёта
     "ph": 573,  # адрес под которым счетчик забит в успд
@@ -323,6 +440,15 @@ if com == "min30":
 
             json_string = json.dumps(json_output)
             r.rpush('output', json_string)  # добавляем его на редис
+elif com == "instant":
+    for i in range(8):
+        json_output = {"key": answer_key, "vmid": 4, "command": "day", "do": "send",
+                       "out": int_to_hex(create_Read_msg(com, I1, I2, i), 13),
+                       "protocol": "1",
+                       "waitingbytes": 28}  # генерируем json с запросом и указываем ключ куда положить ответ
+
+        json_string = json.dumps(json_output)
+        r.rpush('output', json_string)  # добавляем его на редис
 else:
     for i in range (4):
         json_output = {"key": answer_key, "vmid": 4, "command": "day", "do": "send",
@@ -337,17 +463,14 @@ else:
 
 
 #--- создаем пример ответа
-json_answer = {"in": "475241504528302E3130323634290D0A475241504528302E3130343830290D0A475241504528302E3130343430290D0A475241504528302E3130343636290D0A475241504528302E3130343134290D0A475241504528302E3130333832290D0A475241504528302E3030303030290D0A0356", "state": "0"}
+json_answer = {"in": "0253494E5F6628302E34393134290D0A53494E5F6628302E35313130290D0A53494E5F6628302E34393338290D0A53494E5F6628302E34393837290D0A0324", "state": "0"}
 json_string = json.dumps(json_answer)
 r.rpush(answer_key,json_string)
 
-json_answer = {"in": "475241514528302E3030343538290D0A", "state": "0"}
+json_answer = {"in": "02434F5249552832382E35313437290D0A434F5249552833302E33363336290D0A434F5249552832382E38353335290D0A037A", "state": "0"}
 json_string = json.dumps(json_answer)
 r.rpush(answer_key,json_string)
 
-json_answer = {"in": "475241514528302E3030343538290D0A", "state": "0"}
-json_string = json.dumps(json_answer)
-r.rpush(answer_key,json_string)
 #---
 
 
@@ -372,8 +495,27 @@ while i < 8:
                 field = "qp"
             elif ind_com == 3:
                 field = "qm"
+            elif ind_com == 4:
+                field = "power_active"
+            elif ind_com == 5:
+                field = "power_reactive"
+            elif ind_com == 6:
+                field = "power_full"
+            elif ind_com == 7:
+                field = "voltage"
+            elif ind_com == 8:
+                field = "current_strength"
+            elif ind_com == 9:
+                field = "power_coeff"
+            elif ind_com == 10:
+                field = "SIN_f"
+            elif ind_com == 11:
+                field = "current_voltage_angle"
+            elif ind_com == 12:
+                field = "frequency"
             else:
                 field = "unknown"
+
 
             while current_index in data_dict and field in data_dict[current_index]:
                 current_index += 1
@@ -408,8 +550,8 @@ r.rpush('dbwrite', json_string)  # кладем полученные данны�
 
 
 
-# for i in range(26):
-#     print(r.lpop('output'))
+for i in range(15):
+    print(r.lpop('output'))
 
 print("---")
 print(r.lpop('dbwrite'))
