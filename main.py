@@ -123,6 +123,8 @@ def create_Read_msg(com,I1,I2,e):
         i = month(read_reqes,e,I1,I2)
     elif com == "instant":
         i = instant(read_reqes,e)
+    elif com == "allen":
+        i = allen(read_reqes,e,I1,I2)
     else:
         print("unknown command: "+ com)
         i=3
@@ -131,7 +133,32 @@ def create_Read_msg(com,I1,I2,e):
     #read_reqes[14] = 0x0d # пхд контрольная сумма
     read_reqes[i+2] = calculate_crc(read_reqes, i+2)  # пхд контрольная сумма
 
+
     return read_reqes
+
+def allen(buff,e,I1,I2):
+    #01 52 31 02    41 50 48 50 45 28 30 29    03 77  .R1.APHPE(0).w
+    buff[4] = 0x41 # A
+    buff[5] = 0x50 # P
+    buff[6] = 0x48 # H
+    if e == 0:
+        buff[7] = 0x50  # P - активная
+        buff[8] = 0x45  # E - потребленная
+    elif e == 1:
+        buff[7] = 0x50  # P - активная
+        buff[8] = 0x49  # I - отпущенная
+    elif e == 2:
+        buff[7] = 0x51  # Q - реактивная
+        buff[8] = 0x45  # E - потребленная
+    elif e == 3:
+        buff[7] = 0x51  # Q - реактивная
+        buff[8] = 0x49  # I - отпущенная
+    buff[9] = 0x28 # (
+    buff[10] = ord(str(I1))  # номер запрашиваемого месяца (дня)
+    buff[11] = ord(str(I2))  # количество запрашиваемых месяцев (дней)
+    buff[12] = 0x29 # )
+    return 12
+
 
 
 def instant (buff,e):
@@ -279,7 +306,7 @@ def day(buff,e, I1, I2):
         buff[7] = 0x51  # Q - реактивная
         buff[8] = 0x49  # I - отпущенная
     buff[9] = 0x28  # (
-    buff[10] = ord(str(I1))  # номер запрашиваемого месяца (дня)
+    buff[10] = ord(str(I1+1))  # номер запрашиваемого месяца (дня)
     buff[11] = ord(str(I2))  # количество запрашиваемых месяцев (дней)
     buff[12] = 0x29  # )
     return 12
@@ -301,13 +328,10 @@ def month(buff,e,I1,I2):
         buff[7] = 0x51  # Q - реактивная
         buff[8] = 0x49  # I - отпущенная
     buff[9] = 0x28  # (
-    buff[10] = ord(str(I1))  # номер запрашиваемого месяца (дня)
+    buff[10] = ord(str(I1+1))  # номер запрашиваемого месяца (дня)
     buff[11] = ord(str(I2))  # количество запрашиваемых месяцев (дней)
     buff[12] = 0x29  # )
     return 12
-
-
-
 
 
 def check_data(buffer):
@@ -350,31 +374,37 @@ def check_data(buffer):
 
             in_range = True
             current_string = ''
+
         elif value == '29':
             in_range = False
             # Переводим строку из ASCII символов в числа
             num_string = ''
             for char in current_string:
-                num_string += char if char.isdigit() else '.'
+                if char.isdigit():
+                    num_string += char
+                elif char == ',':
+                    num_string = ''
+                else:
+                    num_string += '.'
+
+
+
+
+                #num_string += char if char.isdigit() else '.'
 
             values.append(num_string)
+
         elif in_range:
+            current_string += chr(int(value, 16))  # Преобразуем ASCII код в символ и добавляем к текущей строке
 
-                current_string += chr(int(value, 16))  # Преобразуем ASCII код в символ и добавляем к текущей строке
-
-
-
-
-
-    return values,e
-
+    return values, e
 
 
 command = f'channel.commands'
 #-- создаем пример запроса
 json_create_cmd = {
     "channel": 'ktp6',  # название канала
-    "cmd": 'instant',  # название типа опроса day - показания на начало суток
+    "cmd": 'allen',  # название типа опроса day - показания на начало суток
     "run": 'ce6850',  # название вызываемого протокола
     "vm_id": 4,  # id прибора учёта
     "ph": 573,  # адрес под которым счетчик забит в успд
@@ -386,9 +416,7 @@ json_create_cmd = {
     "overwrite": 0  # параметр дозаписи/перезаписи
 }
 
-
 json_string = json.dumps(json_create_cmd)
-
 r.rpush(command, json_string) # добавляем его на редис
 #---
 
@@ -433,7 +461,7 @@ if com == "min30":
     for g in range(I2-I1): # чтобы запросить за каждый день
         for i in range(8):
 
-            json_output = {"key": answer_key, "vmid": 4, "command": "day", "do": "send",
+            json_output = {"key": answer_key, "vmid": 4, "command": "min30", "do": "send",
                            "out": int_to_hex(create_Read_msg(com, I1+g, I2, i), 27),
                            "protocol": "1",
                            "waitingbytes": 28}  # генерируем json с запросом и указываем ключ куда положить ответ
@@ -442,7 +470,7 @@ if com == "min30":
             r.rpush('output', json_string)  # добавляем его на редис
 elif com == "instant":
     for i in range(8):
-        json_output = {"key": answer_key, "vmid": 4, "command": "day", "do": "send",
+        json_output = {"key": answer_key, "vmid": 4, "command": "instant", "do": "send",
                        "out": int_to_hex(create_Read_msg(com, I1, I2, i), 13),
                        "protocol": "1",
                        "waitingbytes": 28}  # генерируем json с запросом и указываем ключ куда положить ответ
@@ -451,8 +479,8 @@ elif com == "instant":
         r.rpush('output', json_string)  # добавляем его на редис
 else:
     for i in range (4):
-        json_output = {"key": answer_key, "vmid": 4, "command": "day", "do": "send",
-                       "out": int_to_hex(create_Read_msg(com,I1,I2,i),15),
+        json_output = {"key": answer_key, "vmid": 4, "command": " ", "do": "send",
+                       "out": int_to_hex(create_Read_msg(com, I1, I2, i),15),
                        "protocol": "1",
                        "waitingbytes": 28}  # генерируем json с запросом и указываем ключ куда положить ответ
 
@@ -462,22 +490,29 @@ else:
 
 
 
-#--- создаем пример ответа
-json_answer = {"in": "0253494E5F6628302E34393134290D0A53494E5F6628302E35313130290D0A53494E5F6628302E34393338290D0A53494E5F6628302E34393837290D0A0324", "state": "0"}
+
+#----- создаем пример ответа
+json_answer = {"in": "02415048504528372C302E3130303339290D0A0317", "state": "0"}
 json_string = json.dumps(json_answer)
 r.rpush(answer_key,json_string)
 
-json_answer = {"in": "02434F5249552832382E35313437290D0A434F5249552833302E33363336290D0A434F5249552832382E38353335290D0A037A", "state": "0"}
+
+json_answer = {"in": "02415048504928372C302E3030303030290D0A030E", "state": "0"}
 json_string = json.dumps(json_answer)
 r.rpush(answer_key,json_string)
 
-#---
+#-----
 
 
 
 # c переодичностью в секунду проверяем:
 data_dict = {}
-while i < 8:
+if com == "min30" or com == "instant":
+    i_max = 8
+else:
+    i_max = 4
+while i < i_max:
+
     json_answer_list = r.lrange(answer_key, 0, -1)  # Получаем все элементы из списка
 
     for json_answer in json_answer_list:
@@ -550,8 +585,8 @@ r.rpush('dbwrite', json_string)  # кладем полученные данны�
 
 
 
-for i in range(15):
-    print(r.lpop('output'))
+# for i in range(15):
+#     print(r.lpop('output'))
 
 print("---")
 print(r.lpop('dbwrite'))
