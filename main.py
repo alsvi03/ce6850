@@ -436,7 +436,7 @@ def main():
 
 
     answer_key = str(uuid.uuid4())  # создание ключа
-    json_output = {"key": answer_key, "vmid": 4, "command": "day", "do": "send",
+    json_output = {"key": answer_key, "vmid": vm_id, "command": com, "do": "send",
                    "out": int_to_hex(create_Packege_reqest(address),8),
                    "protocol": "1",
                    "waitingbytes": 28}  # генерируем json с запросом и указываем ключ куда положить ответ
@@ -444,7 +444,7 @@ def main():
     json_string = json.dumps(json_output)
     r.rpush(f'{command[0]}.output', json_string)  # добавляем его на редис
 
-    json_output = {"key": answer_key, "vmid": 4, "command": "day", "do": "send",
+    json_output = {"key": answer_key, "vmid": vm_id, "command": com, "do": "send",
                    "out": int_to_hex(create_confirm_msg(),6),
                    "protocol": "1",
                    "waitingbytes": 28}  # генерируем json с запросом и указываем ключ куда положить ответ
@@ -452,7 +452,7 @@ def main():
     json_string = json.dumps(json_output)
     r.rpush(f'{command[0]}.output', json_string)  # добавляем его на редис
 
-    json_output = {"key": answer_key, "vmid": 4, "command": "day", "do": "send",
+    json_output = {"key": answer_key, "vmid": vm_id, "command": com, "do": "send",
                    "out": int_to_hex(create_password_msg(),14),
                    "protocol": "1",
                    "waitingbytes": 28}  # генерируем json с запросом и указываем ключ куда положить ответ
@@ -464,7 +464,7 @@ def main():
         for g in range(I2-I1): # чтобы запросить за каждый день
             for i in range(8):
 
-                json_output = {"key": answer_key, "vmid": 4, "command": "min30", "do": "send",
+                json_output = {"key": answer_key, "vmid": vm_id, "command": "min30", "do": "send",
                                "out": int_to_hex(create_Read_msg(com, I1+g, I2, i), 27),
                                "protocol": "1",
                                "waitingbytes": 28}  # генерируем json с запросом и указываем ключ куда положить ответ
@@ -473,7 +473,7 @@ def main():
                 r.rpush(f'{command[0]}.output', json_string)  # добавляем его на редис
     elif com == "instant":
         for i in range(8):
-            json_output = {"key": answer_key, "vmid": 4, "command": "instant", "do": "send",
+            json_output = {"key": answer_key, "vmid": vm_id, "command": "instant", "do": "send",
                            "out": int_to_hex(create_Read_msg(com, I1, I2, i), 13),
                            "protocol": "1",
                            "waitingbytes": 28}  # генерируем json с запросом и указываем ключ куда положить ответ
@@ -482,7 +482,7 @@ def main():
             r.rpush(f'{command[0]}.output', json_string)  # добавляем его на редис
     else:
         for i in range (4):
-            json_output = {"key": answer_key, "vmid": 4, "command": " ", "do": "send",
+            json_output = {"key": answer_key, "vmid": vm_id, "command": com, "do": "send",
                            "out": int_to_hex(create_Read_msg(com, I1, I2, i),15),
                            "protocol": "1",
                            "waitingbytes": 28}  # генерируем json с запросом и указываем ключ куда положить ответ
